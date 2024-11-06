@@ -22,6 +22,10 @@ RMV v2 is a backwards-incompatible update of the format.
  - added square_size property.
  - mouse coordinates are now signed, and relative to the top left corner of the
    board, as opposed to the top left corner of the UI.
+ - added reduced mouse move event that
+   - uses relative coordinates/timestamps
+   - omits nFlags
+   - and therefore fits into 3 bytes instead of 9
  - added machine-readable fields to specify the clone used, along with its
    major version.
  - added named extension properties. Clones that want to add metadata that is
@@ -149,6 +153,7 @@ The structure is given as a list. Each list item contains one of the following:
      `chars("asdf")`.
    - `uint(<length>)` - an unsigned integer encoded in `length` bytes.
    - `sint(<length>)` - a signed integer encoded in `length` bytes.
+   - `sint(<length>bits)` - a signed integer encoded in `length` bits.
    - `str(<length>)` - a utf-8 string encoded in `length` bytes, where `length`
      is given as the name of a previously parsed result.
    - `blob(<length>)` - a binary blob that is `length` bytes long, where
@@ -237,6 +242,11 @@ defined first, and semantics of each value will get their own paragraph later.
    - `if 15 <= event_code <= 17`
      - `event_code` -> `termination_event_type`
      - `uint(3)` -> `time_ms`
+   - `if file_type == 2 and event_code == 28`
+     - `event_code` -> `mouse_event_type`
+     - `uint(1)` -> `gametime_change`
+     - `sint(4bits)` -> `xpos_change`
+     - `sint(4bits)` -> `ypos_change`
  - `blob(checksum_size)` -> `checksum`
 
 #### Semantics
@@ -554,9 +564,26 @@ Allowed values and meanings:
  - `5` - rmb_up
  - `6` - mmb_down
  - `7` - mmb_up
+ - `28` - reduced mouse move
 
 SHOULD simply correspond 1:1 to mouse events that happened ingame. MUST do so if
 the middle mouse button was not used.
+
+Reduced mouse move SHOULD be written by clones when:
+ - `nFlags` didn't change compared to the last event
+ - the mouse position changed by no more than 8 pixels in either direction
+ - the current gametime is 255ms or less after the last event
+
+If one of these conditions is not met, clones MUST write a classical mouse move
+
+It implies a mouse move event with:
+ - the same value of `nFlags` as the previous event
+ - a `gametime` that is offset from the gametime of the previous event
+   by `gametime_change` milliseconds
+ - an `xpos` that is offset from the `xpos` of the previous event
+   by `xpos_change` pixels
+ - a `ypos` that is offset from the `ypos` of the previous event
+   by `ypos_change` pixels
 
 ##### `gametime`
 
