@@ -571,7 +571,7 @@ the middle mouse button was not used.
 
 Reduced mouse move SHOULD be written by clones when:
  - `nFlags` didn't change compared to the last event
- - the mouse position changed by no more than 8 pixels in either direction
+ - the mouse position change in both axes is between -8 and 7 inclusive
  - the current gametime is 255ms or less after the last event
 
 If one of these conditions is not met, clones MUST write a classical mouse move
