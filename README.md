@@ -154,8 +154,10 @@ The structure is given as a list. Each list item contains one of the following:
    - `uint(<length>)` - an unsigned integer encoded in `length` bytes.
    - `sint(<length>)` - a signed integer encoded in `length` bytes.
    - `sint(<length>bits)` - a signed integer encoded in `length` bits.
-   - `str(<length>)` - a utf-8 string encoded in `length` bytes, where `length`
-     is given as the name of a previously parsed result.
+   - `str(<length>)` - a text string encoded in `length` bytes, where `length`
+     is given as the name of a previously parsed result. If the `utf8` property
+     is set or `format_version >= 2`, this contains utf-8. See below for
+     handling utf-8 fields.
    - `blob(<length>)` - a binary blob that is `length` bytes long, where
      `length` is given as the name of a previously parsed result
    - an expression using previously defined values
@@ -171,6 +173,45 @@ in the interest of sacrificing theoretical precision for readability.
 
 In the interest of keeping the format definition compact, its structure will be
 defined first, and semantics of each value will get their own paragraph later.
+
+##### Handling utf-8
+
+Clones MUST emit valid utf-8 to utf-8 fields.
+
+Reader implementations MUST either
+- completely ignore the contents of these fields
+- OR verify that they are valid utf-8
+- OR:
+  - treat the data as an opaque binary blob, performing no processing that
+    implicitly assumes an encoding
+  - AND be written in a programming language/environment in which there are no
+    facilities readily available to perform the validation/conversion
+    - (ie: this shouldn't be a blocker to writing a parser in ASM or brainfuck,
+      but if your standard library allows you to do it, then effing do it)
+
+Readers SHOULD decode utf-8 fields and expose them as text data. Readers MAY
+instead expose utf-8 fields 1:1 as binary blobs (but, as stated above, MUST
+still verify that they contain valid utf-8 in that case).
+
+Every complaint about this part of the spec MUST be accompanied by a
+demonstration that the complaining party has read and understood the following
+blog post from 2003:
+
+https://www.joelonsoftware.com/2003/10/08/the-absolute-minimum-every-software-developer-absolutely-positively-must-know-about-unicode-and-character-sets-no-excuses/
+
+To demonstrate that you have read the blog post, please include:
+ - what the single most important fact about encodings is
+ - what you will spend the next 6 months doing in a submarine, and why you
+   think that that doesn't apply to you
+
+Otherwise, your complaint may be disregarded.
+
+(Notes:
+ - Since ASCII is a subset of utf-8, clones can emit that and still be
+   compliant
+ - If your existing library doesn't parse text data, all you have to add is a
+   validity check - that's what the third paragraph is for. If it does parse
+   text data, but in a broken way, then fix it.)
 
 #### Structure
 
